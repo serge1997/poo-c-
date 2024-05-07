@@ -7,4 +7,14 @@ public class InterestEarningAccount : BankAccount
     {
 
     }
+
+
+    public override void PerformMonthEndTransaction()
+    {
+        if (Balance > 500m)
+        {
+            decimal interest = Balance * 0.20m;
+            MakeDeposit(interest, DateTime.Now, "Apply monthly interest");
+        }
+    }
 }

@@ -1,8 +1,11 @@
-﻿namespace Poo.Models;
+﻿using static System.Runtime.InteropServices.JavaScript.JSType;
+
+namespace Poo.Models;
 
 public class BankAccount
 {
     private static int s_accountNumberSeed = 1234567890;
+    private readonly decimal _minimumBalance;
     public string Number { get; }
     public string Owner { get; set; }
     public decimal Balance
@@ -20,13 +23,25 @@ public class BankAccount
         }
     }
 
-    public BankAccount(string name, decimal initialBalance) 
+    public BankAccount(string name, decimal initialBalance) : this(name, initialBalance, 0)
+    {
+       
+    }
+
+    public BankAccount(string name, decimal initialBalance, decimal minimalBalance)
     {
         Owner = name;
-        
+
         Number = s_accountNumberSeed.ToString();
         s_accountNumberSeed++;
-        MakeDeposit(initialBalance, DateTime.Now, "Initial balance");
+
+        _minimumBalance = minimalBalance;
+
+        if (initialBalance > 0)
+        {
+            MakeDeposit(initialBalance, DateTime.Now, "Initial balance");
+        }
+       
     }
 
     private List<Transaction> _allTransaction = new List<Transaction>();
@@ -50,13 +65,33 @@ public class BankAccount
             throw new ArgumentOutOfRangeException(nameof(amout), "Amount of withdrawal must be positive");
         }
 
-        if (Balance - amout <= 0 )
+        Transaction? overdraftTransaction = CheckWithdrawalLimit(Balance - amout < _minimumBalance);
+        Transaction? withDrawal = new(-amout, date, note);
+
+        if ( overdraftTransaction != null)
         {
-            throw new InvalidOperationException("Not sufficient funds for this withdrawal");
+            _allTransaction.Add(overdraftTransaction);
         }
 
-        var withdrawal = new Transaction(-amout, date, note);
-        _allTransaction.Add(withdrawal);
+        //if (Balance - amout < _minimumBalance)
+        //{
+        //    throw new InvalidOperationException("Not sufficient funds for this withdrawal");
+        //}
+
+        //var withdrawal = new Transaction(-amout, date, note);
+        //_allTransaction.Add(withdrawal);
+    }
+
+    protected virtual Transaction? CheckWithdrawalLimit(bool isOverDrawn)
+    {
+        if ( isOverDrawn)
+        {
+            throw new ArgumentOutOfRangeException("Not suficient funds for this withdrawal");
+        }
+        else
+        {
+            return default;
+        }
     }
 
     public string GetAccountHistory()
@@ -75,6 +110,8 @@ public class BankAccount
 
         return report.ToString();
     }
+
+    public virtual void PerformMonthEndTransaction() { }
 
 
 }
